@@ -11,35 +11,35 @@ contract Library is Ownable {
         address[] userAddresses;
     }
 
-    uint256[] public booksId;
-    mapping(uint256 => Book) public booksInLibrary;
-    mapping(address => mapping(uint256 => bool)) public booksByUser;
+    bytes32[] public booksId;
+    mapping(bytes32 => Book) public booksInLibrary;
+    mapping(address => mapping(bytes32 => bool)) public borrowedBooksByUser;
 
-    event BookAdded(uint256 bookId);
-    event BookBorrowed(uint256 bookId);
-    event BookReturned(uint256 bookId);
+    event BookAdded(bytes32 bookId);
+    event BookBorrowed(bytes32 bookId);
+    event BookReturned(bytes32 bookId);
 
-    modifier bookAvailableCopies(uint256 _bookId) {
+    modifier bookAvailableCopies(bytes32 _bookId) {
         require(booksInLibrary[_bookId].copies > 0, "Not enought book copies");
         _;
     }
 
-    modifier uniqueBooks(uint256 _bookId) {
+    modifier uniqueBooks(bytes32 _bookId) {
         require(booksInLibrary[_bookId].copies == 0, "Book already in library");
         _;
     }
 
-    modifier userBorrowedBook(uint256 _bookId) {
+    modifier userBorrowedBook(bytes32 _bookId) {
         require(
-            !booksByUser[msg.sender][_bookId],
+            !borrowedBooksByUser[msg.sender][_bookId],
             "User already borrowed this book"
         );
         _;
     }
 
-    modifier userHasBook(uint256 _bookId) {
+    modifier userHasBook(bytes32 _bookId) {
         require(
-            booksByUser[msg.sender][_bookId],
+            borrowedBooksByUser[msg.sender][_bookId],
             "User does not have this book"
         );
         _;
@@ -48,9 +48,9 @@ contract Library is Ownable {
     function addBook(string memory _bookName, uint32 _bookCopies)
         public
         onlyOwner
-        uniqueBooks(uint256(keccak256(abi.encodePacked(_bookName))))
+        uniqueBooks(keccak256(abi.encodePacked(_bookName)))
     {
-        uint256 bookId = uint256(keccak256(abi.encodePacked(_bookName)));
+        bytes32 bookId = keccak256(abi.encodePacked(_bookName));
         address[] memory defaultAddresses;
         booksInLibrary[bookId] = Book(_bookName, _bookCopies, defaultAddresses);
         booksId.push(bookId);
@@ -58,20 +58,20 @@ contract Library is Ownable {
         emit BookAdded(bookId);
     }
 
-    function borrowBook(uint256 _bookId)
+    function borrowBook(bytes32 _bookId)
         public
         bookAvailableCopies(_bookId)
         userBorrowedBook(_bookId)
     {
-        booksByUser[msg.sender][_bookId] = true;
+        borrowedBooksByUser[msg.sender][_bookId] = true;
         booksInLibrary[_bookId].copies--;
         booksInLibrary[_bookId].userAddresses.push(msg.sender);
 
         emit BookBorrowed(_bookId);
     }
 
-    function returnBook(uint256 _bookId) public userHasBook(_bookId) {
-        booksByUser[msg.sender][_bookId] = false;
+    function returnBook(bytes32 _bookId) public userHasBook(_bookId) {
+        borrowedBooksByUser[msg.sender][_bookId] = false;
         booksInLibrary[_bookId].copies++;
 
         emit BookReturned(_bookId);
@@ -81,7 +81,7 @@ contract Library is Ownable {
         return booksId.length;
     }
 
-    function getAddressesByBook(uint256 _bookId)
+    function getAddressesByBook(bytes32 _bookId)
         public
         view
         returns (address[] memory)
