@@ -1,5 +1,4 @@
 const { ethers, logger } = require("ethers")
-const Library = require("./build/Library.json")
 
 const getAvailableBooks = async function (contract) {
     const allBooksLength = parseInt(await contract.getBooksLength(), 10)
@@ -29,15 +28,24 @@ const isBookAvailable = async function (contract, bookId) {
     return copies > 0
 }
 
-const run = async function () {
-    const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545")
-    const wallet = new ethers.Wallet("0x7ab741b57e8d94dd7e1a29055646bafde7010f38a900f55bbd7647880faa6ee8", provider)
-    const libraryContract = new ethers.Contract("0x7d6FAe26B090953A46098d7513b559B0a339Ee4d", Library.abi, wallet)
+const run = async function (libraryContract, wallet) {
+    // const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545")
+    // const wallet = new ethers.Wallet("0x7ab741b57e8d94dd7e1a29055646bafde7010f38a900f55bbd7647880faa6ee8", provider)
+    // const libraryContract = new ethers.Contract(contractAddress, contractAbi, wallet)
 
     // Creat a book
-    await libraryContract.addBook("Test Book 1", 1)
-    await libraryContract.addBook("Test Book 2", 2)
-    await libraryContract.addBook("Test Book 3", 3)
+    const addBookTransaction = await libraryContract.addBook("Test Book 1", 1)
+    const addBookTransactionReceipt = await addBookTransaction.wait()
+
+    if (addBookTransactionReceipt.status != 1) {
+        console.err("Transaction was not successfull")
+        return
+    } else {
+        console.log('--- Books added by admin ---');
+    }
+
+    // await libraryContract.addBook("Test Book 2", 2)
+    // await libraryContract.addBook("Test Book 3", 3)
 
     // Get all available books
     const availableBooks = await getAvailableBooks(libraryContract)
@@ -45,13 +53,32 @@ const run = async function () {
     const lastBookId = availableBooks[availableBooks.length - 1].id
 
     // Rent a book
-    await libraryContract.borrowBook(lastBookId)
+    const borrowBookTransaction = await libraryContract.borrowBook(lastBookId)
+    const borrowBookTransactionReceipt = await borrowBookTransaction.wait()
+
+    if (borrowBookTransactionReceipt.status != 1) {
+        console.err("Transaction was not successfull")
+        return
+    } else {
+        console.log('--- Book borrowed ---');
+    }
 
     // Check if book is rented by current user
     console.log("Is book rented by user:", await isBookRentedByUser(libraryContract, wallet, lastBookId))
 
+    // Show available books
+    console.log('Available books:', await getAvailableBooks(libraryContract))
+
     // Return a book
-    await libraryContract.returnBook(lastBookId)
+    const returnBookTransaction = await libraryContract.returnBook(lastBookId)
+    const returnBookTransactionReceipt = await returnBookTransaction.wait();
+
+    if (returnBookTransactionReceipt.status != 1) {
+        console.err("Transaction was not successfull")
+        return
+    } else {
+        console.log('--- Book returned ---');
+    }
 
     // Check if book is rented by current user
     console.log("Is book rented by user:", await isBookRentedByUser(libraryContract, wallet, lastBookId))
@@ -60,4 +87,6 @@ const run = async function () {
     console.log('Is book available:', await isBookAvailable(libraryContract, lastBookId))
 }
 
-run()
+module.exports = {
+    run
+};
