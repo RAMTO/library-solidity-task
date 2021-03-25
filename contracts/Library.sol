@@ -3,6 +3,7 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./LIB.sol";
 
 contract Library is Ownable {
     struct Book {
@@ -11,6 +12,8 @@ contract Library is Ownable {
         address[] userAddresses;
     }
 
+    LIB public LIBToken;
+
     bytes32[] public booksId;
     mapping(bytes32 => Book) public booksInLibrary;
     mapping(address => mapping(bytes32 => bool)) public borrowedBooksByUser;
@@ -18,6 +21,10 @@ contract Library is Ownable {
     event BookAdded(bytes32 bookId);
     event BookBorrowed(bytes32 bookId);
     event BookReturned(bytes32 bookId);
+
+    constructor(address tokenAddress) {
+        LIBToken = LIB(tokenAddress);
+    }
 
     modifier bookAvailableCopies(bytes32 _bookId) {
         require(booksInLibrary[_bookId].copies > 0, "Not enought book copies");
@@ -60,9 +67,12 @@ contract Library is Ownable {
 
     function borrowBook(bytes32 _bookId)
         public
+        payable
         bookAvailableCopies(_bookId)
         userBorrowedBook(_bookId)
     {
+        require(LIBToken.balanceOf(msg.sender) > 0, "Insuficient amount");
+        LIBToken.transferFrom(msg.sender, address(this), 10**18);
         borrowedBooksByUser[msg.sender][_bookId] = true;
         booksInLibrary[_bookId].copies--;
         booksInLibrary[_bookId].userAddresses.push(msg.sender);

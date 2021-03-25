@@ -1,15 +1,19 @@
 const etherlime = require('etherlime-lib')
-const { ethers, logger } = require('ethers')
 const Library = require('../build/Library.json')
-const { run } = require('../interact.js')
+const LIBWrapper = require('../build/LIBWrapper.json')
 
 const deploy = async (network, secret, etherscanApiKey) => {
 
     const deployer = new etherlime.EtherlimeGanacheDeployer()
-    const { contract } = await deployer.deploy(Library)
-    const wallet = deployer.signer.signingKey
 
-    run(contract, wallet)
+    // Deploy contract
+    const contractWrapper = await deployer.deploy(LIBWrapper)
+
+    // Get token address
+    const tokenAddress = await contractWrapper.LIBToken()
+
+    // Deploy contract with constructor params
+    const contractLibrary = await deployer.deploy(Library, false, tokenAddress)
 }
 
 module.exports = {
