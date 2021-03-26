@@ -11,9 +11,10 @@ const deploy = async (network, secret, etherscanApiKey) => {
 
     // Get token address
     const tokenAddress = await contractWrapper.LIBToken()
+    const wrapperAddress = contractWrapper.contractAddress;
 
     // Deploy contract with constructor params
-    const contractLibrary = await deployer.deploy(Library, false, tokenAddress)
+    const contractLibrary = await deployer.deploy(Library, false, tokenAddress, wrapperAddress)
 }
 
 module.exports = {

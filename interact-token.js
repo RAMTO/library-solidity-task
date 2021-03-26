@@ -9,8 +9,8 @@ const run = async function () {
 
     // Addresses
     const deployerAddress = "0xd9995bae12fee327256ffec1e3184d492bd94c31"
-    const libraryContractAddress = "0x3167fF663d21B47Bc9d6e331D96370fD921dAA4B"
-    const wrapperContractAddress = "0xD936431C8D29c7e0f793fb6184aa0fcC6b8d4E03"
+    const libraryContractAddress = "0x2fa72DaDB0De5De164E316E074B7A7bb2EEbd354"
+    const wrapperContractAddress = "0x03337900382f325C1bB907d56b3230bCD9d606A2"
 
     // Get contracts
     const libraryContract = new ethers.Contract(libraryContractAddress, libraryAbi.abi, wallet)
@@ -22,65 +22,102 @@ const run = async function () {
     // Tokens
     const currencySymbol = await tokenContract.symbol();
     let currentBalance;
-    let currentLibraryBalance;
     let currentBalanceETH;
+    let currentLibraryBalance;
+    let currentLibraryBalanceETH;
+    let currentWrapperBalanceETH;
 
-    // Get current balance in LIB
+    // Get current deployer balances
     currentBalance = await tokenContract.balanceOf(deployerAddress);
+    currentBalanceETH = await provider.getBalance(deployerAddress);
     console.log('-----------------------');
     console.log("Deployer balance: ", ethers.utils.formatEther(currentBalance), currencySymbol);
+    console.log("Deployer balance: ", ethers.utils.formatEther(currentBalanceETH), "ETH");
     console.log('-----------------------');
 
+    // Get current library balances
     currentLibraryBalance = await tokenContract.balanceOf(libraryContractAddress);
+    currentLibraryBalanceETH = await provider.getBalance(libraryContractAddress);
     console.log('-----------------------');
     console.log("Library balance: ", ethers.utils.formatEther(currentLibraryBalance), currencySymbol);
+    console.log("Library balance: ", ethers.utils.formatEther(currentLibraryBalanceETH), "ETH");
     console.log('-----------------------');
 
-    // Get current balance in ETH
-    // currentBalanceETH = await provider.getBalance(deployerAddress);
-    // console.log('-----------------------');
-    // console.log("Deployer balance: ", ethers.utils.formatEther(currentBalanceETH), "ETH");
-    // console.log('-----------------------');
-
     // Mint some LIB tokens
-    const wrapValue = ethers.utils.parseEther("20")
+    const wrapValue = ethers.utils.parseEther("20");
 
-    // Wrap some ETH
+    //Wrap some ETH
     const wrapTx = await wallet.sendTransaction({ to: wrapperContractAddress, value: wrapValue })
     await wrapTx.wait();
 
-    // Approve amount
-    // const approveTx = await tokenContract.approve(libraryContractAddress, wrapValue)
-    // await approveTx.wait();
-
-    // Show allowence
-    const spenderAmount = await tokenContract.allowance(deployerAddress, libraryContractAddress);
     console.log('-----------------------');
-    console.log(`Approved amount from User to Library: ${ethers.utils.formatEther(spenderAmount)} ${currencySymbol}`);
+    console.log(`${ethers.utils.formatEther(wrapValue)} ${currencySymbol} minted`);
     console.log('-----------------------');
 
-    // Rent a book
-    // const borrowBookTransaction = await libraryContract.borrowBook("0xd5258e1860b584f58ed2fa0ee7ae00dbaf8deda2c964b71419afc08c2b42a78c")
-    // const borrowBookTransactionReceipt = await borrowBookTransaction.wait()
+    currentWrapperBalanceETH = await provider.getBalance(wrapperContractAddress);
+    console.log('-----------------------');
+    console.log("Wrapper balance: ", ethers.utils.formatEther(currentWrapperBalanceETH), "ETH");
+    console.log('-----------------------');
 
-    // if (borrowBookTransactionReceipt.status != 1) {
-    //     console.err("Transaction was not successfull")
-    //     return
-    // } else {
-    //     console.log('--- Book borrowed ---');
-    // }
+    // Send some amount to library contract
+    const amount = ethers.utils.parseEther("10");
+    const sendTx = await tokenContract.transfer(libraryContractAddress, amount)
+    await sendTx.wait();
 
-    // Get current balance in LIB
+    console.log('-----------------------');
+    console.log(`${ethers.utils.formatEther(amount)} ${currencySymbol} sent to Library`);
+    console.log('-----------------------');
+
+    // Get current deployer balances
     currentBalance = await tokenContract.balanceOf(deployerAddress);
+    currentBalanceETH = await provider.getBalance(deployerAddress);
     console.log('-----------------------');
     console.log("Deployer balance: ", ethers.utils.formatEther(currentBalance), currencySymbol);
+    console.log("Deployer balance: ", ethers.utils.formatEther(currentBalanceETH), "ETH");
     console.log('-----------------------');
 
-    // Get current balance in ETH
-    // currentBalanceETH = await provider.getBalance(deployerAddress);
+    // Get current library balances
+    currentLibraryBalance = await tokenContract.balanceOf(libraryContractAddress);
+    currentLibraryBalanceETH = await provider.getBalance(libraryContractAddress);
+    console.log('-----------------------');
+    console.log("Library balance: ", ethers.utils.formatEther(currentLibraryBalance), currencySymbol);
+    console.log("Library balance: ", ethers.utils.formatEther(currentLibraryBalanceETH), "ETH");
+    console.log('-----------------------');
+
+    // Show allowence
+    // const spenderAmount = await tokenContract.allowance(deployerAddress, libraryContractAddress);
+    // const spenderAmountLibtoWrapper = await tokenContract.allowance(libraryContractAddress, wrapperContractAddress);
     // console.log('-----------------------');
-    // console.log("Deployer balance: ", ethers.utils.formatEther(currentBalanceETH), "ETH");
+    // console.log(`Approved amount from User to Library: ${ethers.utils.formatEther(spenderAmount)} ${currencySymbol}`);
     // console.log('-----------------------');
+    // console.log('-----------------------');
+    // console.log(`Approved amount from Library to Wrapper: ${ethers.utils.formatEther(spenderAmountLibtoWrapper)} ${currencySymbol}`);
+    // console.log('-----------------------');
+
+    // Unwrap amount
+    const unwrapAmount = ethers.utils.parseEther("5");
+    const unwrapTx = await libraryContract.withdraw(unwrapAmount);
+    await unwrapTx.wait();
+
+    console.log('-----------------------');
+    console.log(`${ethers.utils.formatEther(unwrapAmount)} ${currencySymbol} unwrapped and sent to Deployer`);
+    console.log('-----------------------');
+
+    // Get current deployer balances
+    currentBalance = await tokenContract.balanceOf(deployerAddress);
+    currentBalanceETH = await provider.getBalance(deployerAddress);
+    console.log('-----------------------');
+    console.log("Deployer balance: ", ethers.utils.formatEther(currentBalance), currencySymbol);
+    console.log("Deployer balance: ", ethers.utils.formatEther(currentBalanceETH), "ETH");
+    console.log('-----------------------');
+
+    // Get current library balances
+    currentLibraryBalance = await tokenContract.balanceOf(libraryContractAddress);
+    currentLibraryBalanceETH = await provider.getBalance(libraryContractAddress);
+    console.log('-----------------------');
+    console.log("Library balance: ", ethers.utils.formatEther(currentLibraryBalance), currencySymbol);
+    console.log("Library balance: ", ethers.utils.formatEther(currentLibraryBalanceETH), "ETH");
+    console.log('-----------------------');
 }
 
 run()

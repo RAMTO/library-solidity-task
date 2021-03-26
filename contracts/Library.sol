@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./LIB.sol";
+import "./LIBWrapper.sol";
 
 contract Library is Ownable {
     struct Book {
@@ -13,6 +14,7 @@ contract Library is Ownable {
     }
 
     LIB public LIBToken;
+    LIBWrapper public wrapper;
 
     bytes32[] public booksId;
     mapping(bytes32 => Book) public booksInLibrary;
@@ -22,8 +24,9 @@ contract Library is Ownable {
     event BookBorrowed(bytes32 bookId);
     event BookReturned(bytes32 bookId);
 
-    constructor(address tokenAddress) {
+    constructor(address tokenAddress, address payable wrapperAddress) {
         LIBToken = LIB(tokenAddress);
+        wrapper = LIBWrapper(wrapperAddress);
     }
 
     modifier bookAvailableCopies(bytes32 _bookId) {
@@ -98,4 +101,12 @@ contract Library is Ownable {
     {
         return booksInLibrary[_bookId].userAddresses;
     }
+
+    function withdraw(uint256 value) public onlyOwner {
+        LIBToken.approve(address(wrapper), value);
+        wrapper.unwrap(value);
+        msg.sender.transfer(value);
+    }
+
+    receive() external payable {}
 }
